@@ -1,0 +1,25 @@
+# Code Galaxy — web server rules
+
+# Force HTTPS: send every visitor to the secure version of the site.
+# (Requires a valid SSL certificate on the subdomain — see README / cPanel AutoSSL.)
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{HTTPS} !=on
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+</IfModule>
+
+# Tell browsers to always use HTTPS for the next year (only sent over HTTPS).
+<IfModule mod_headers.c>
+    Header always set Strict-Transport-Security "max-age=31536000" "expr=%{HTTPS} == 'on'"
+</IfModule>
+
+# Default document
+DirectoryIndex index.php index.html
+
+# Do not serve the local config or database if they ever end up on the server
+<FilesMatch "^(config\.local\.php)$">
+    Require all denied
+</FilesMatch>
+<FilesMatch "\.(sqlite|sqlite3|db)$">
+    Require all denied
+</FilesMatch>
