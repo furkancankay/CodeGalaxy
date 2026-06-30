@@ -2,6 +2,9 @@
 config.php
 config.local.php
 
+# Local-only project notes — keep private, do not publish
+CLAUDE.md
+
 # Local SQLite database (created automatically at runtime)
 data/*.sqlite
 data/*.sqlite3
