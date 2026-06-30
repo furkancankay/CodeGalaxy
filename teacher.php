@@ -84,17 +84,6 @@ if ($classCount) {
         <div class="stat-card glass"><div class="stat-num"><?= $avgPct ?>%</div><div class="stat-lbl">Class average</div></div>
     </div>
 
-    <div class="teacher-code glass">
-        <div class="tc-head">
-            <h2>Teacher signup code</h2>
-            <p>Share this code only with other teachers. Anyone who signs up with it gets a teacher control panel like this one. Students do <strong>not</strong> need it.</p>
-        </div>
-        <div class="tc-box">
-            <code id="teacherCode"><?= e(TEACHER_SIGNUP_CODE) ?></code>
-            <button type="button" class="btn-ghost" id="copyCode" data-code="<?= e(TEACHER_SIGNUP_CODE) ?>">Copy</button>
-        </div>
-    </div>
-
     <div class="teacher-hint glass">
         Students sign up at your site with a username &amp; password — no teacher code needed for them. Just share your site link:
         <strong>code.mrfrkn.com</strong>.
@@ -137,6 +126,11 @@ if ($classCount) {
     <?php endif; ?>
 </main>
 
+<div class="teacher-code-mini">
+    <span>Teacher signup code — share with other teachers only:</span>
+    <code id="teacherCode"><?= e(TEACHER_SIGNUP_CODE) ?></code>
+    <button type="button" class="tc-copy" id="copyCode" data-code="<?= e(TEACHER_SIGNUP_CODE) ?>">Copy</button>
+</div>
 <?= site_footer() ?>
 <script src="assets/js/stars.js"></script>
 <script>

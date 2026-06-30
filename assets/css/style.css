@@ -621,14 +621,14 @@ h1,h2{font-family:var(--font-display); letter-spacing:.2px}
 .app-page .site-footer{border-top:1px solid var(--line)}
 
 /* ============================================================
- *  Teacher signup-code card
+ *  Teacher signup-code (compact, near the footer)
  * ============================================================ */
-.teacher-code{max-width:880px; margin:0 auto 14px; padding:20px 22px; border-radius:20px;
-  border-left:6px solid var(--purple)}
-.tc-head h2{font-family:var(--font-display); font-size:19px; color:var(--ink); margin:0 0 4px}
-.tc-head p{color:var(--muted); font-weight:700; font-size:13.5px; margin:0 0 14px}
-.tc-box{display:flex; align-items:center; gap:12px; flex-wrap:wrap}
-.tc-box code{font-family:'Fredoka','Nunito',monospace; font-size:22px; font-weight:600;
-  letter-spacing:.04em; color:var(--purple); background:#f4f0ff; border:2px dashed #d8caff;
-  padding:10px 18px; border-radius:14px; user-select:all}
-#copyCode.copied{color:#fff; background:var(--green); border-color:var(--green)}
+.teacher-code-mini{max-width:880px; margin:26px auto 0; display:flex; align-items:center;
+  justify-content:center; gap:10px; flex-wrap:wrap; color:var(--muted); font-size:12.5px; font-weight:700}
+.teacher-code-mini code{font-family:'Fredoka','Nunito',monospace; font-weight:600; font-size:13px;
+  letter-spacing:.03em; color:var(--purple); background:#f4f0ff; border:1px dashed #d8caff;
+  padding:4px 12px; border-radius:10px; user-select:all}
+.tc-copy{border:1.5px solid var(--line); background:#fff; color:var(--muted); font-weight:800;
+  font-size:11px; padding:5px 11px; border-radius:9px; cursor:pointer; transition:.2s}
+.tc-copy:hover{color:var(--blue); border-color:var(--blue); background:#f3f6ff}
+.tc-copy.copied{color:#fff; background:var(--green); border-color:var(--green)}
