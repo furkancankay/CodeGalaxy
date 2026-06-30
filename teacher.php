@@ -84,9 +84,20 @@ if ($classCount) {
         <div class="stat-card glass"><div class="stat-num"><?= $avgPct ?>%</div><div class="stat-lbl">Class average</div></div>
     </div>
 
+    <div class="teacher-code glass">
+        <div class="tc-head">
+            <h2>Teacher signup code</h2>
+            <p>Share this code only with other teachers. Anyone who signs up with it gets a teacher control panel like this one. Students do <strong>not</strong> need it.</p>
+        </div>
+        <div class="tc-box">
+            <code id="teacherCode"><?= e(TEACHER_SIGNUP_CODE) ?></code>
+            <button type="button" class="btn-ghost" id="copyCode" data-code="<?= e(TEACHER_SIGNUP_CODE) ?>">Copy</button>
+        </div>
+    </div>
+
     <div class="teacher-hint glass">
-        Students sign up at your site with a username &amp; password. Tell them your site link — no teacher code needed for them.
-        Keep your <strong>teacher code</strong> secret so only you get this control panel.
+        Students sign up at your site with a username &amp; password — no teacher code needed for them. Just share your site link:
+        <strong>code.mrfrkn.com</strong>.
     </div>
 
     <?php if (!$classCount): ?>
@@ -128,5 +139,28 @@ if ($classCount) {
 
 <?= site_footer() ?>
 <script src="assets/js/stars.js"></script>
+<script>
+(function () {
+    var btn = document.getElementById('copyCode');
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+        var code = btn.getAttribute('data-code') || '';
+        var done = function () {
+            var original = btn.textContent;
+            btn.textContent = 'Copied';
+            btn.classList.add('copied');
+            setTimeout(function () { btn.textContent = original; btn.classList.remove('copied'); }, 1500);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(code).then(done, done);
+        } else {
+            var t = document.createElement('textarea');
+            t.value = code; document.body.appendChild(t); t.select();
+            try { document.execCommand('copy'); } catch (e) {}
+            document.body.removeChild(t); done();
+        }
+    });
+})();
+</script>
 </body>
 </html>

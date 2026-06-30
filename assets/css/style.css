@@ -71,7 +71,8 @@ h1,h2{font-family:var(--font-display); letter-spacing:.2px}
 }
 
 /* ---------- AUTH ---------- */
-.auth-page{display:flex; align-items:center; justify-content:center; padding:24px}
+.auth-page{display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px}
+.auth-page .site-footer{border-top:none; padding-top:22px}
 .auth-wrap{width:100%; max-width:440px; text-align:center}
 .logo-rocket{
   width:74px; height:74px; margin:0 auto; border-radius:24px;
@@ -618,3 +619,16 @@ h1,h2{font-family:var(--font-display); letter-spacing:.2px}
   color:var(--muted); font-weight:700; font-size:13px;
 }
 .app-page .site-footer{border-top:1px solid var(--line)}
+
+/* ============================================================
+ *  Teacher signup-code card
+ * ============================================================ */
+.teacher-code{max-width:880px; margin:0 auto 14px; padding:20px 22px; border-radius:20px;
+  border-left:6px solid var(--purple)}
+.tc-head h2{font-family:var(--font-display); font-size:19px; color:var(--ink); margin:0 0 4px}
+.tc-head p{color:var(--muted); font-weight:700; font-size:13.5px; margin:0 0 14px}
+.tc-box{display:flex; align-items:center; gap:12px; flex-wrap:wrap}
+.tc-box code{font-family:'Fredoka','Nunito',monospace; font-size:22px; font-weight:600;
+  letter-spacing:.04em; color:var(--purple); background:#f4f0ff; border:2px dashed #d8caff;
+  padding:10px 18px; border-radius:14px; user-select:all}
+#copyCode.copied{color:#fff; background:var(--green); border-color:var(--green)}
