@@ -1,0 +1,18 @@
+# Local configuration & secrets — never commit these
+config.php
+config.local.php
+
+# Local SQLite database (created automatically at runtime)
+data/*.sqlite
+data/*.sqlite3
+data/*.db
+
+# Build / upload artifact
+code-galaxy-upload.zip
+
+# OS / editor junk
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/

@@ -1,0 +1,2 @@
+# Block all direct web access to this folder (kept private).
+Require all denied
