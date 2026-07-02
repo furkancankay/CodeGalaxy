@@ -233,6 +233,16 @@
     return row;
   }
 
+  /* shuffle the displayed choices so the right answer is never always first */
+  function mixChoices(answers, correct) {
+    var idx = answers.map(function (_, i) { return i; });
+    shuffle(idx);
+    return {
+      answers: idx.map(function (i) { return answers[i]; }),
+      correct: idx.indexOf(correct)
+    };
+  }
+
   /* Scratch-style block stack: items {c: category, t: text, in: indent} */
   function blockStack(items) {
     var stack = el('div', 'scb-stack');
@@ -535,14 +545,15 @@
           if (R.blocks) wrap.appendChild(blockStack(R.blocks));
           else wrap.appendChild(el('pre', 'code-block', R.code));
           var done = false;
-          wrap.appendChild(choiceRow(R.answers, '', function (ai, b, row) {
+          var mix = mixChoices(R.answers, R.correct);
+          wrap.appendChild(choiceRow(mix.answers, '', function (ai, b, row) {
             if (done) return;
             done = true;
-            var right = (ai === R.correct);
+            var right = (ai === mix.correct);
             b.classList.add(right ? 'is-right' : 'is-wrong');
             if (right) { score++; ctx.set('qS', String(score)); }
             else {
-              row.children[R.correct].classList.add('is-right');
+              row.children[mix.correct].classList.add('is-right');
               if (lose()) { wrap.appendChild(whyBox(R.why)); return; }
             }
             wrap.appendChild(whyBox(R.why));
@@ -616,14 +627,15 @@
             row.classList.add('is-bug');
             wrap.appendChild(askMsg('Found it! Now pick the repair:'));
             var doneFix = false;
-            wrap.appendChild(choiceRow(R.fixes, 'bz-fixes', function (fi, fb, frow) {
+            var fmix = mixChoices(R.fixes, R.fix);
+            wrap.appendChild(choiceRow(fmix.answers, 'bz-fixes', function (fi, fb, frow) {
               if (doneFix) return;
               doneFix = true;
-              var right = (fi === R.fix);
+              var right = (fi === fmix.correct);
               fb.classList.add(right ? 'is-right' : 'is-wrong');
               if (right) { score++; ctx.set('dS', String(score)); }
               else {
-                frow.children[R.fix].classList.add('is-right');
+                frow.children[fmix.correct].classList.add('is-right');
                 if (lose()) { wrap.appendChild(whyBox(R.why)); return; }
               }
               wrap.appendChild(whyBox(R.why));
@@ -837,9 +849,10 @@
         var S = steps[i];
         quiz.appendChild(askMsg(S.need));
         var tried = false;
-        quiz.appendChild(choiceRow(S.options, 'wb-choices', function (ai, b, row) {
+        var wmix = mixChoices(S.options, S.correct);
+        quiz.appendChild(choiceRow(wmix.answers, 'wb-choices', function (ai, b, row) {
           if (b.classList.contains('is-wrong') || b.classList.contains('is-right')) return;
-          if (ai === S.correct) {
+          if (ai === wmix.correct) {
             b.classList.add('is-right');
             if (!tried) score++;
             ctx.set('wbS', String(score));
@@ -888,16 +901,17 @@
         var term = el('div', 'gt-term', '<span class="gt-prompt">student@galaxy:~/project$</span> <span class="gt-cursor"></span>');
         wrap.appendChild(term);
         var done = false;
-        wrap.appendChild(choiceRow(R.options, 'gt-choices', function (ai, b, row) {
+        var tmix = mixChoices(R.options, R.correct);
+        wrap.appendChild(choiceRow(tmix.answers, 'gt-choices', function (ai, b, row) {
           if (done) return;
           done = true;
-          var right = ai === R.correct;
+          var right = ai === tmix.correct;
           b.classList.add(right ? 'is-right' : 'is-wrong');
-          term.innerHTML = '<span class="gt-prompt">student@galaxy:~/project$</span> ' + R.options[ai] +
+          term.innerHTML = '<span class="gt-prompt">student@galaxy:~/project$</span> ' + tmix.answers[ai] +
             '\n<span class="' + (right ? 'gt-ok' : 'gt-err') + '">' + (right ? R.output : 'error: that is not the right tool for this job') + '</span>';
           if (right) { score++; ctx.set('gS', String(score)); }
           else {
-            row.children[R.correct].classList.add('is-right');
+            row.children[tmix.correct].classList.add('is-right');
             left--;
             ctx.set('gL', hearts(left, TOT));
             if (left <= 0) { setTimeout(function () { ctx.fail('You finished ' + score + ' of ' + rounds.length + ' terminal tasks.'); }, 1300); return; }
@@ -939,7 +953,8 @@
         wrap.appendChild(askMsg('Pick the correctly resolved file:'));
         var done = false;
         var row = el('div', 'gt-res');
-        R.options.forEach(function (opt, ai) {
+        var cmix = mixChoices(R.options, R.correct);
+        cmix.answers.forEach(function (opt, ai) {
           var b = el('button', 'gt-res-opt');
           b.type = 'button';
           var pre = el('pre');
@@ -948,10 +963,10 @@
           b.addEventListener('click', function () {
             if (done) return;
             done = true;
-            var right = ai === R.correct;
+            var right = ai === cmix.correct;
             b.classList.add(right ? 'is-right' : 'is-wrong');
             if (right) score++;
-            else row.children[R.correct].classList.add('is-right');
+            else row.children[cmix.correct].classList.add('is-right');
             ctx.set('cS', String(score));
             wrap.appendChild(whyBox(R.why));
             var nb = el('button', 'btn-blast oh-next', (i + 1 < rounds.length) ? 'Next conflict' : 'Finish');
@@ -1069,13 +1084,14 @@
         if (R.kind === 'mcq') {
           wrap.appendChild(renderTable(rows, cols));
           var done = false;
-          wrap.appendChild(choiceRow(R.answers, '', function (ai, b, row) {
+          var mmix = mixChoices(R.answers, R.correct);
+          wrap.appendChild(choiceRow(mmix.answers, '', function (ai, b, row) {
             if (done) return;
             done = true;
-            var right = ai === R.correct;
+            var right = ai === mmix.correct;
             b.classList.add(right ? 'is-right' : 'is-wrong');
             if (right) { score++; ctx.set('tS', String(score)); }
-            else row.children[R.correct].classList.add('is-right');
+            else row.children[mmix.correct].classList.add('is-right');
             finishRound();
           }));
         } else {
@@ -1880,10 +1896,11 @@
         });
         wrap.appendChild(row);
         var done = false;
-        wrap.appendChild(choiceRow(rounds[i].answers, '', function (ai, b, r) {
+        var bAnswers = shuffle(rounds[i].answers.slice());
+        wrap.appendChild(choiceRow(bAnswers, '', function (ai, b, r) {
           if (done) return;
           done = true;
-          var right = rounds[i].answers[ai] === String(target);
+          var right = bAnswers[ai] === String(target);
           b.classList.add(right ? 'is-right' : 'is-wrong');
           if (right) { score++; ctx.set('bnS', String(score)); }
           else {
