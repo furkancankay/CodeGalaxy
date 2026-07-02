@@ -122,6 +122,11 @@ for ($i = 0; $i < $n; $i++) {
     $nd['y'] = $pts[$i][1];
     $nodes[] = $nd;
 }
+// The last mission in each stage sits just above the next stage's banner, so
+// flag it to render its label ABOVE the circle (below would clash with the banner).
+for ($i = 0; $i < $n - 1; $i++) {
+    $nodes[$i]['stageEnd'] = !empty($flat[$i + 1]['start']);
+}
 $mapH = $finishY + $PAD_BOT;
 
 // stage banners sit in the extra road gap before each world
@@ -266,7 +271,7 @@ for ($s = 0; $s < $decoCount; $s++) {
             $state     = $isDone ? 'done' : ($isCurrent ? 'current' : 'locked');
             $icon      = $isDone ? icon('check') : ($isCurrent ? (string)($idx + 1) : icon('lock'));
         ?>
-            <div class="level map-node node-<?= $state ?> <?= $nd['start'] ? 'is-start' : '' ?>"
+            <div class="level map-node node-<?= $state ?> <?= $nd['start'] ? 'is-start' : '' ?> <?= !empty($nd['stageEnd']) ? 'is-stage-end' : '' ?>"
                  style="left:<?= $xpct($nd['x']) ?>%; top:<?= round($nd['y'], 1) ?>px; --c:<?= e($nd['color']) ?>; --i:<?= $idx ?>"
                  data-key="<?= e($nd['key']) ?>" data-index="<?= $idx ?>" title="<?= e($nd['title']) ?>">
                 <span class="node-circle"><span class="dot-icon"><?= $icon ?></span></span>
