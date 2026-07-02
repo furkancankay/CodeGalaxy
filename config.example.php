@@ -191,7 +191,7 @@ function current_user_row(): ?array {
 
 function require_login(): array {
     $u = current_user_row();
-    if (!$u) { header('Location: index.php'); exit; }
+    if (!$u) { header('Location: login.php'); exit; }
     return $u;
 }
 

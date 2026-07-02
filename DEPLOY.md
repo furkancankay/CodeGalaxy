@@ -74,6 +74,7 @@ Upload these:
 ```
 config.php
 index.php
+login.php
 dashboard.php
 teacher.php
 toggle.php

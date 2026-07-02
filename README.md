@@ -87,7 +87,8 @@ Everything above is the built-in default. Teachers can reshape any of it from th
 
 ```
 code-galaxy/
-├── index.php           Sign-up and login (with avatar picker)
+├── index.php           Public landing page (hero, features, planets)
+├── login.php           Sign-up and login (with avatar picker)
 ├── dashboard.php       The student galaxy map
 ├── teacher.php         Mission Control — class progress overview
 ├── curriculum.php      Teacher curriculum editor (per age group)
