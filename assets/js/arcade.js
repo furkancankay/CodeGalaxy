@@ -126,19 +126,6 @@
   }
 
   /* ================= framework screens ================= */
-  function showStory(g, info) {
-    elHud.innerHTML = '';
-    elStage.innerHTML = '';
-    var p = el('div', 'story');
-    p.appendChild(el('div', 'story-hero', g.hero || SVG.robot));
-    g.story.forEach(function (para) { p.appendChild(txt('p', 'story-p', para)); });
-    var go = el('button', 'btn-blast oh-next', 'Begin the adventure');
-    go.type = 'button';
-    go.addEventListener('click', function () { showChapters(g, info); });
-    p.appendChild(go);
-    elStage.appendChild(p);
-  }
-
   function showChapters(g, info) {
     elHud.innerHTML = '';
     elStage.innerHTML = '';
@@ -147,6 +134,10 @@
     stars.forEach(function (s) { total += s; if (s < 1) all3 = false; });
 
     var wrap = el('div', 'ch-select');
+    var hero = el('div', 'ch-hero');
+    hero.style.background = 'radial-gradient(240px 120px at 80% -20%, rgba(255,255,255,.35), transparent), linear-gradient(115deg, ' + (info.color || '#4c6fff') + ', #9a6bff)';
+    hero.innerHTML = '<span class="ch-hero-art">' + (g.hero || SVG.robot) + '</span>';
+    wrap.appendChild(hero);
     var list = el('div', 'ch-list');
     g.chapters.forEach(function (ch, i) {
       var unlocked = (i === 0) || (stars[i - 1] > 0);
@@ -164,13 +155,6 @@
       list.appendChild(b);
     });
     wrap.appendChild(list);
-
-    var foot = el('div', 'ch-foot');
-    var storyBtn = el('button', 'btn-ghost-wide ch-story-btn', 'Read the story again');
-    storyBtn.type = 'button';
-    storyBtn.addEventListener('click', function () { showStory(g, info); });
-    foot.appendChild(storyBtn);
-    wrap.appendChild(foot);
 
     if (all3) {
       var done = el('p', 'ch-done', 'World complete! ' + total + ' / ' + (g.chapters.length * 3) + ' stars collected.');
@@ -247,6 +231,18 @@
       row.appendChild(b);
     });
     return row;
+  }
+
+  /* Scratch-style block stack: items {c: category, t: text, in: indent} */
+  function blockStack(items) {
+    var stack = el('div', 'scb-stack');
+    items.forEach(function (b) {
+      var n = el('div', 'scb scb-' + b.c + (b.c === 'event' ? ' scb-hat' : ''));
+      n.textContent = b.t;
+      n.style.marginLeft = ((b.in || 0) * 20) + 'px';
+      stack.appendChild(n);
+    });
+    return stack;
   }
 
   /* click-in-order puzzle: steps[] in correct order; renders shuffled */
@@ -535,8 +531,9 @@
           });
           wrap.appendChild(box);
         } else {
-          wrap.appendChild(askMsg(R.kind === 'blank' ? R.goal + ' — pick the missing piece!' : 'What will this code print?'));
-          wrap.appendChild(el('pre', 'code-block', R.code));
+          wrap.appendChild(askMsg(R.q ? R.q : (R.kind === 'blank' ? R.goal + ' — pick the missing piece!' : 'What will this code print?')));
+          if (R.blocks) wrap.appendChild(blockStack(R.blocks));
+          else wrap.appendChild(el('pre', 'code-block', R.code));
           var done = false;
           wrap.appendChild(choiceRow(R.answers, '', function (ai, b, row) {
             if (done) return;
@@ -1793,18 +1790,294 @@
       why: 'That is a real deployment pipeline — exactly how pro teams ship.' }
   ];
 
+  /* ---- Scratch logic (Stage 1: events, loops, IF/ELSE, variables) ---- */
+  var SCRATCH_LOGIC = [
+    { kind: 'predict', q: 'Robo IS touching a rock. What happens?', answers: ['Robo turns around', 'Robo moves 10 steps', 'Nothing happens'], correct: 0,
+      blocks: [{ c: 'event', t: 'when green flag clicked' }, { c: 'control', t: 'if < touching rock ? > then' }, { c: 'motion', t: 'turn 180 degrees', in: 1 }, { c: 'control', t: 'else' }, { c: 'motion', t: 'move 10 steps', in: 1 }, { c: 'control', t: 'end' }],
+      why: 'The condition is TRUE, so the IF branch runs and the ELSE is skipped.' },
+    { kind: 'predict', q: 'Robo is NOT touching a rock this time. What happens?', answers: ['Robo moves 10 steps', 'Robo turns around', 'Both things happen'], correct: 0,
+      blocks: [{ c: 'event', t: 'when green flag clicked' }, { c: 'control', t: 'if < touching rock ? > then' }, { c: 'motion', t: 'turn 180 degrees', in: 1 }, { c: 'control', t: 'else' }, { c: 'motion', t: 'move 10 steps', in: 1 }, { c: 'control', t: 'end' }],
+      why: 'FALSE condition = the ELSE branch runs. IF/ELSE always picks exactly ONE path.' },
+    { kind: 'predict', q: 'What is score when this script finishes?', answers: ['8', '5', '3'], correct: 0,
+      blocks: [{ c: 'event', t: 'when green flag clicked' }, { c: 'variables', t: 'set score to 0' }, { c: 'variables', t: 'change score by 5' }, { c: 'variables', t: 'change score by 3' }],
+      why: 'A variable is a box: 0, then +5, then +3 makes 8.' },
+    { kind: 'predict', q: 'The score is 7. What does the sprite say?', answers: ['Keep going!', 'You win!', 'Nothing'], correct: 0,
+      blocks: [{ c: 'control', t: 'if < score > 10 > then' }, { c: 'looks', t: 'say "You win!"', in: 1 }, { c: 'control', t: 'else' }, { c: 'looks', t: 'say "Keep going!"', in: 1 }, { c: 'control', t: 'end' }],
+      why: '7 is not bigger than 10, so the condition is FALSE and the ELSE runs.' },
+    { kind: 'predict', q: 'How far does the sprite travel in total?', answers: ['40 steps', '10 steps', '4 steps'], correct: 0,
+      blocks: [{ c: 'control', t: 'repeat 4' }, { c: 'motion', t: 'move 10 steps', in: 1 }, { c: 'control', t: 'end' }],
+      why: 'A loop repeats its inside: 4 times 10 = 40 steps.' },
+    { kind: 'predict', q: 'The player clicks the green flag. Does the sprite jump?', answers: ['No — this script waits for SPACE', 'Yes, right away', 'It jumps twice'], correct: 0,
+      blocks: [{ c: 'event', t: 'when SPACE key pressed' }, { c: 'motion', t: 'change y by 50' }],
+      why: 'Event blocks decide WHEN a script starts. This one only listens for the space key.' },
+    { kind: 'predict', q: 'The sprite touches BLUE. What happens?', answers: ['Nothing — the condition is false', 'The boing sound plays', 'The sprite turns blue'], correct: 0,
+      blocks: [{ c: 'control', t: 'if < touching color RED ? > then' }, { c: 'sound', t: 'play sound boing', in: 1 }, { c: 'control', t: 'end' }],
+      why: 'An IF with no ELSE simply does nothing when the answer is no.' },
+    { kind: 'predict', q: 'What does this script do?', answers: ['Moves and bounces off edges forever', 'Moves once and stops', 'Bounces one time'], correct: 0,
+      blocks: [{ c: 'control', t: 'forever' }, { c: 'motion', t: 'move 5 steps', in: 1 }, { c: 'control', t: 'if < touching edge ? > then', in: 1 }, { c: 'motion', t: 'bounce', in: 2 }, { c: 'control', t: 'end', in: 1 }, { c: 'control', t: 'end' }],
+      why: 'A forever loop with an IF inside — that is the heartbeat of almost every game!' }
+  ];
+
+  /* ---- Scratch -> Python bridge (side quest) ---- */
+  var BRIDGE = [
+    { kind: 'predict', q: 'Which Python line does the SAME thing?', answers: ['print("Hello!")', 'say("Hello!")', 'echo "Hello!"'], correct: 0,
+      blocks: [{ c: 'looks', t: 'say "Hello!"' }], why: 'say in Scratch = print() in Python. Same idea, typed instead of dragged.' },
+    { kind: 'predict', q: 'Which Python line does the SAME thing?', answers: ['score = 0', 'set score = 0', 'score == 0'], correct: 0,
+      blocks: [{ c: 'variables', t: 'set score to 0' }], why: 'One = puts a value into the box. (Two == would ASK about it.)' },
+    { kind: 'predict', q: 'Which Python line does the SAME thing?', answers: ['score = score + 1', 'score + 1', 'change score by 1'], correct: 0,
+      blocks: [{ c: 'variables', t: 'change score by 1' }], why: 'Python has no "change by" — you write the new value yourself: old score plus 1.' },
+    { kind: 'predict', q: 'Which Python line starts the SAME loop?', answers: ['for i in range(10):', 'repeat 10:', 'loop 10 times'], correct: 0,
+      blocks: [{ c: 'control', t: 'repeat 10' }, { c: 'motion', t: 'move 10 steps', in: 1 }], why: 'repeat 10 = for i in range(10): — the indented lines below are the inside of the loop.' },
+    { kind: 'predict', q: 'Which Python line does the SAME thing?', answers: ['name = input("Your name?")', 'ask("Your name?")', 'name = ask and wait'], correct: 0,
+      blocks: [{ c: 'sensing', t: 'ask "Your name?" and wait' }], why: 'ask-and-wait = input(). The typed answer lands in the variable.' },
+    { kind: 'predict', q: 'Which Python line asks the SAME question?', answers: ['if score == 10:', 'if score = 10 then', 'when score is 10'], correct: 0,
+      blocks: [{ c: 'control', t: 'if < score = 10 > then' }], why: 'Careful: Python uses == to compare. The colon starts the indented branch.' },
+    { kind: 'predict', q: 'Which Python line loops the SAME way?', answers: ['while True:', 'forever:', 'repeat always'], correct: 0,
+      blocks: [{ c: 'control', t: 'forever' }], why: 'forever = while True: — a condition that never stops being true.' },
+    { kind: 'predict', q: 'Which Python line waits the SAME way?', answers: ['time.sleep(1)', 'wait(1)', 'pause 1 second'], correct: 0,
+      blocks: [{ c: 'control', t: 'wait 1 second' }], why: 'time.sleep(1) — after import time at the top of your program.' }
+  ];
+
+  /* ---- error reading (Stage 3) ---- */
+  var CRASHES = [
+    { kind: 'predict', q: 'The program crashed! What went wrong?', answers: ['A variable name is misspelled', 'The computer is broken', 'Python hates games'], correct: 0,
+      code: 'score = 10\nprint(scor)\n\nNameError: name \'scor\' is not defined', why: 'Read the LAST line first: Python never heard of "scor" — the name was mistyped.' },
+    { kind: 'predict', q: 'What caused this crash?', answers: ['Asked for item 5 but the list has only 2', 'Too many fruits', 'print is broken'], correct: 0,
+      code: 'fruits = ["apple", "plum"]\nprint(fruits[5])\n\nIndexError: list index out of range', why: 'The list has indexes 0 and 1 — index 5 is off the end of the shelf.' },
+    { kind: 'predict', q: 'What is Python complaining about?', answers: ['Gluing text to a number — wrap it in str()', 'age is too big', 'The + sign is illegal'], correct: 0,
+      code: 'age = 12\nprint("I am " + age)\n\nTypeError: can only concatenate str (not "int") to str', why: '"I am " is text, 12 is a number. print("I am " + str(age)) fixes it.' },
+    { kind: 'predict', q: 'Why did this explode?', answers: ['Dividing by zero — impossible in maths too', 'Zero is unlucky', 'Python cannot divide'], correct: 0,
+      code: 'players = 0\nprint(100 / players)\n\nZeroDivisionError: division by zero', why: 'Check numbers before dividing — an IF guard saves the day.' },
+    { kind: 'predict', q: 'What went wrong here?', answers: ['The dictionary has no "phone" key', 'The phone is switched off', 'Dictionaries only store names'], correct: 0,
+      code: 'book = {"name": "Ada"}\nprint(book["phone"])\n\nKeyError: \'phone\'', why: 'You can only look up keys that exist — or use book.get("phone") to be safe.' },
+    { kind: 'predict', q: 'Python refuses to even start. Why?', answers: ['The line under if needs spaces in front', 'The file is too long', 'if is spelled wrong'], correct: 0,
+      code: 'if score > 10:\nprint("You win!")\n\nIndentationError: expected an indented block', why: 'Indentation is Python\'s grammar — the inside of an if must be pushed right.' }
+  ];
+
+  /* ---- binary lights (Stage 4) ---- */
+  var BULB_ON  = '<svg viewBox="0 0 40 52" class="bulb-svg"><path d="M20 4a13 13 0 0 1 8 23c-1.6 1.5-2.5 3-2.5 5H14.5c0-2-.9-3.5-2.5-5A13 13 0 0 1 20 4z" fill="#ffd24a"/><rect x="14" y="34" width="12" height="4" rx="2" fill="#9aa9d6"/><rect x="15" y="40" width="10" height="3" rx="1.5" fill="#9aa9d6"/></svg>',
+    BULB_OFF = '<svg viewBox="0 0 40 52" class="bulb-svg"><path d="M20 4a13 13 0 0 1 8 23c-1.6 1.5-2.5 3-2.5 5H14.5c0-2-.9-3.5-2.5-5A13 13 0 0 1 20 4z" fill="#dfe5f6"/><rect x="14" y="34" width="12" height="4" rx="2" fill="#c3cce8"/><rect x="15" y="40" width="10" height="3" rx="1.5" fill="#c3cce8"/></svg>';
+  function binaryChapter(rounds) {
+    return function (ctx) {
+      var i = 0, score = 0;
+      function draw() {
+        ctx.hud([
+          { label: 'Pattern', value: (i + 1) + ' / ' + rounds.length },
+          { label: 'Decoded', value: String(score), id: 'bnS' }
+        ]);
+        var bits = rounds[i].bits;
+        var target = 0;
+        var VALS = [8, 4, 2, 1];
+        bits.forEach(function (b, k) { if (b) target += VALS[k]; });
+        ctx.stage.innerHTML = '';
+        var wrap = el('div', 'oh-wrap');
+        wrap.appendChild(askMsg('Computers store numbers as ON/OFF lights. Each light is worth its number — add up the ON ones!'));
+        var row = el('div', 'bulb-row');
+        bits.forEach(function (b, k) {
+          var cell = el('div', 'bulb-cell' + (b ? ' on' : ''));
+          cell.innerHTML = (b ? BULB_ON : BULB_OFF) + '<span>' + VALS[k] + '</span>';
+          row.appendChild(cell);
+        });
+        wrap.appendChild(row);
+        var done = false;
+        wrap.appendChild(choiceRow(rounds[i].answers, '', function (ai, b, r) {
+          if (done) return;
+          done = true;
+          var right = rounds[i].answers[ai] === String(target);
+          b.classList.add(right ? 'is-right' : 'is-wrong');
+          if (right) { score++; ctx.set('bnS', String(score)); }
+          else {
+            for (var k = 0; k < r.children.length; k++) if (r.children[k].textContent === String(target)) r.children[k].classList.add('is-right');
+          }
+          wrap.appendChild(whyBox(rounds[i].why));
+          var nb = el('button', 'btn-blast oh-next', (i + 1 < rounds.length) ? 'Next pattern' : 'Finish');
+          nb.type = 'button';
+          nb.addEventListener('click', function () {
+            i++;
+            if (i >= rounds.length) {
+              var st = score >= rounds.length ? 3 : (score >= rounds.length - 1 ? 2 : 1);
+              ctx.done(st, 'You read ' + score + ' of ' + rounds.length + ' binary numbers — like a computer!');
+            } else draw();
+          });
+          wrap.appendChild(nb);
+        }));
+        ctx.stage.appendChild(wrap);
+      }
+      draw();
+    };
+  }
+  var BINARY = [
+    { bits: [1, 0, 1, 0], answers: ['10', '5', '12'], why: '8 on + 2 on = 10. That is 1010 in binary!' },
+    { bits: [0, 1, 0, 1], answers: ['5', '10', '3'], why: '4 + 1 = 5. Binary 0101.' },
+    { bits: [1, 1, 0, 0], answers: ['12', '3', '6'], why: '8 + 4 = 12.' },
+    { bits: [0, 0, 1, 1], answers: ['3', '12', '4'], why: '2 + 1 = 3.' },
+    { bits: [1, 1, 1, 1], answers: ['15', '4', '1111'], why: 'All lights on: 8+4+2+1 = 15 — the biggest 4-light number.' },
+    { bits: [1, 0, 0, 1], answers: ['9', '6', '11'], why: '8 + 1 = 9.' }
+  ];
+  var BIGO = [
+    { kind: 'predict', q: 'Your list gets 10 times longer. ONE loop through it now takes about...', answers: ['10x longer', 'the same time', '100x longer'], correct: 0,
+      code: 'for item in big_list:\n    check(item)', why: 'One loop grows WITH the list — engineers call this linear time.' },
+    { kind: 'predict', q: 'Same list, 10x longer — but now a loop INSIDE a loop. How much slower?', answers: ['About 100x', 'About 10x', 'Not slower'], correct: 0,
+      code: 'for a in big_list:\n    for b in big_list:\n        compare(a, b)', why: '10x times 10x = 100x. Nested loops explode — that is why games lag!' },
+    { kind: 'predict', q: 'Find one name in a SORTED list of 1000. The fastest way checks about...', answers: ['10 names (binary search)', 'All 1000 names', '500 names'], correct: 0,
+      code: 'names = [...1000 sorted names...]', why: 'Halving 1000 again and again reaches 1 in about 10 steps. You played this in Echo Scanner!' },
+    { kind: 'predict', q: 'Your game lags when 100 aliens spawn. A pro suspects...', answers: ['A loop inside a loop over the aliens', 'The screen colour', 'Bad luck'], correct: 0,
+      code: 'for alien in aliens:\n    for other in aliens:\n        check_crash(alien, other)', why: '100 x 100 = 10,000 checks every frame. Smarter algorithms fix lag, not luck.' },
+    { kind: 'predict', q: 'Looking up a word in a Python dictionary is...', answers: ['Nearly instant, even with a million words', 'Slower for big dictionaries', 'Alphabetical only'], correct: 0,
+      code: 'phone_book = {...a million entries...}\nphone_book["Maya"]', why: 'Hash tables jump straight to the answer — that is their superpower.' }
+  ];
+
+  /* ---- CSS selector sniper (Stage 5) ---- */
+  function selectorChapter(rounds) {
+    return function (ctx) {
+      var i = 0, score = 0;
+      ctx.stage.innerHTML = '';
+      var wrap = el('div', 'wb-wrap');
+      var browser = el('div', 'wb-browser');
+      browser.appendChild(el('div', 'wb-bar',
+        '<span class="l-map-dot" style="--c:#ff5fa2"></span><span class="l-map-dot" style="--c:#ffb020"></span><span class="l-map-dot" style="--c:#22c55e"></span><span class="wb-url">space-cafe.galaxy/menu</span>'));
+      var page = el('div', 'wb-page');
+      var targets = [
+        { key: 'h1', html: '<span class="sel-tag">h1</span>Space Café' },
+        { key: 'dish1', html: '<span class="sel-tag">li .dish</span>Star soup' },
+        { key: 'dish2', html: '<span class="sel-tag">li .dish</span>Moon pie' },
+        { key: 'napkin', html: '<span class="sel-tag">li</span>Napkins' },
+        { key: 'order', html: '<span class="sel-tag">button #order</span>Order now' },
+        { key: 'note', html: '<span class="sel-tag">p .note</span>Fresh comets daily' },
+        { key: 'link', html: '<span class="sel-tag">a</span>Recipes' }
+      ];
+      var nodes = {};
+      targets.forEach(function (t) {
+        var n = el('button', 'sel-el sel-' + t.key, t.html);
+        n.type = 'button';
+        n.addEventListener('click', function () { pick(t.key, n); });
+        nodes[t.key] = n;
+        page.appendChild(n);
+      });
+      browser.appendChild(page);
+      wrap.appendChild(browser);
+      var quiz = el('div', 'wb-quiz');
+      wrap.appendChild(quiz);
+      ctx.stage.appendChild(wrap);
+      var tried = false, locked = false;
+
+      function drawHud() {
+        ctx.hud([
+          { label: 'Target', value: Math.min(i + 1, rounds.length) + ' / ' + rounds.length },
+          { label: 'First-try hits', value: String(score), id: 'ssS' }
+        ]);
+      }
+      function ask() {
+        drawHud();
+        tried = false; locked = false;
+        quiz.innerHTML = '';
+        quiz.appendChild(askMsg(rounds[i].q));
+        quiz.appendChild(el('pre', 'code-block sel-code', rounds[i].sel + ' { border: 3px solid gold; }'));
+      }
+      function pick(key, n) {
+        if (locked || i >= rounds.length) return;
+        if (rounds[i].accept.indexOf(key) !== -1) {
+          locked = true;
+          if (!tried) score++;
+          ctx.set('ssS', String(score));
+          n.classList.add('is-hit');
+          quiz.appendChild(whyBox(rounds[i].why));
+          var nb = el('button', 'btn-blast oh-next', (i + 1 < rounds.length) ? 'Next selector' : 'Finish');
+          nb.type = 'button';
+          nb.addEventListener('click', function () {
+            n.classList.remove('is-hit');
+            i++;
+            if (i >= rounds.length) {
+              var st = score >= rounds.length ? 3 : (score >= rounds.length - 1 ? 2 : 1);
+              ctx.done(st, 'You aimed ' + score + ' of ' + rounds.length + ' selectors perfectly.');
+            } else ask();
+          });
+          quiz.appendChild(nb);
+        } else {
+          tried = true;
+          n.classList.add('is-miss');
+          setTimeout(function () { n.classList.remove('is-miss'); }, 450);
+        }
+      }
+      ask();
+    };
+  }
+  var SELECTORS = [
+    { sel: 'h1', q: 'This CSS rule is loaded. Click the element it will style!', accept: ['h1'], why: 'A bare tag selector styles every element of that tag.' },
+    { sel: '#order', q: 'Click the element #order points at.', accept: ['order'], why: '# means id — and an id belongs to exactly ONE element.' },
+    { sel: '.dish', q: 'Click ANY element that .dish selects.', accept: ['dish1', 'dish2'], why: '. means class — many elements can share it. Both dishes match!' },
+    { sel: 'a', q: 'Click what the a selector styles.', accept: ['link'], why: 'Tag selectors again — a is the link tag.' },
+    { sel: 'li', q: 'Tricky: click the element that li selects but .dish does NOT.', accept: ['napkin'], why: 'Napkins is an li WITHOUT the dish class — classes are opt-in.' },
+    { sel: 'p.note', q: 'Click what p.note targets.', accept: ['note'], why: 'p.note means: a p tag that ALSO has the note class. Both must be true.' }
+  ];
+
+  /* ---- toolbelt drills (Stage 6) ---- */
+  var TOOLBELT = [
+    { scenario: 'Install the rich library to print colourful terminal output.', options: ['pip install rich', 'install rich', 'python get rich', 'download rich'], correct: 0,
+      output: 'Successfully installed rich-13.0', why: 'pip is Python\'s package manager — it fetches libraries from PyPI.' },
+    { scenario: 'Write down every library your project needs, for your teammates.', options: ['pip freeze > requirements.txt', 'pip remember', 'pip list --save', 'note libraries.txt'], correct: 0,
+      output: 'requirements.txt written', why: 'requirements.txt is the shopping list other people install from.' },
+    { scenario: 'A teammate cloned your repo. How do they install your libraries?', options: ['pip install -r requirements.txt', 'pip install all', 'pip clone', 'python setup'], correct: 0,
+      output: 'Installing collected packages... done', why: '-r reads the requirements file and installs everything on the list.' },
+    { scenario: 'Run your game from the terminal.', options: ['python game.py', 'run game.py', 'start game', 'open game.py'], correct: 0,
+      output: 'Welcome to Star Dodger!', why: 'python filename.py hands your file to the Python interpreter.' },
+    { scenario: 'Show which folder you are standing in right now.', options: ['pwd', 'here', 'folder', 'whereami'], correct: 0,
+      output: '/home/student/projects/star-dodger', why: 'pwd = print working directory. (Windows says cd with no arguments.)' },
+    { scenario: 'Create a new folder called rocket for your next project.', options: ['mkdir rocket', 'newfolder rocket', 'create rocket', 'folder rocket'], correct: 0,
+      output: '(folder created — check with ls)', why: 'mkdir = make directory. ls shows it is really there.' }
+  ];
+
+  /* ---- data design court (Stage 7) ---- */
+  var DESIGN = [
+    { kind: 'predict', q: 'Which design is better for the school library?', answers: ['Design B — one fact lives in one place', 'Design A — fewer tables is simpler', 'They are equal'], correct: 0,
+      code: 'Design A: one giant table\n  loans(book, member_name, member_phone, due)\n\nDesign B: three tables\n  books(id, title)\n  members(id, name, phone)\n  loans(book_id, member_id, due)', why: 'In A, a member\'s phone is copied onto EVERY loan — change it once, and the copies disagree.' },
+    { kind: 'predict', q: 'A member gets a new phone number. In the GOOD design you update...', answers: ['One row in members', 'Every loan they ever made', 'Nothing, phones are forever'], correct: 0,
+      code: 'members(id, name, phone)\nloans(book_id, member_id, due)', why: 'That is WHY we split tables: one fact, one home, one update.' },
+    { kind: 'predict', q: 'Where should each player\'s best score live?', answers: ['A best_score column in players', 'A brand-new table for every player', 'In the game\'s title'], correct: 0,
+      code: 'players(id, name, ...?)', why: 'A new FACT about every player = a new COLUMN. New tables are for new kinds of things.' },
+    { kind: 'predict', q: 'Every table should have...', answers: ['An id that is unique for each row', 'A favourite colour', 'At least ten columns'], correct: 0,
+      code: 'ships(id, name, speed)\npilots(id, name, ship_id)', why: 'The id is the primary key — the handle other tables grab with their foreign keys.' },
+    { kind: 'predict', q: 'Your app saves game SETTINGS whose shape changes all the time. Better fit?', answers: ['A flexible JSON document', 'A strict table', 'A screenshot'], correct: 0,
+      code: '{ "volume": 80,\n  "controls": {"jump": "SPACE"},\n  "new_stuff_next_week": "?" }', why: 'Documents bend, tables are strict. Real engineers pick the shape that fits the data.' }
+  ];
+
+  /* ---- security patrol (Stage 8) ---- */
+  var SECURITY = [
+    { kind: 'predict', q: 'How should a server remember passwords?', answers: ['As hashes — never the real text', 'In a passwords.txt file', 'In the page URL'], correct: 0,
+      code: 'stored: "d0a4b1..." (hash)\ntyped:  "rocket123" -> hash -> compare', why: 'If hackers steal hashes, they still do not have the passwords.' },
+    { kind: 'predict', q: 'A visitor types this as their NAME. Your app should...', answers: ['Clean and escape it before showing it', 'Run it — the customer is always right', 'Show it to all users as-is'], correct: 0,
+      code: 'name = "<script>steal()</script>"', why: 'Never trust input! Escaping turns sneaky code into harmless text.' },
+    { kind: 'predict', q: 'What does the S in https:// actually buy you?', answers: ['The connection is encrypted', 'The site loads faster', 'The site is more expensive'], correct: 0,
+      code: 'http://  = postcards anyone can read\nhttps:// = sealed envelopes', why: 'On http, anyone on the wifi can read what you send. HTTPS seals it.' },
+    { kind: 'predict', q: 'Where do API keys and passwords belong?', answers: ['Environment variables — outside the code', 'Pushed to GitHub with everything else', 'In a code comment'], correct: 0,
+      code: 'BAD:  API_KEY = "sk-12345" in app.py\nGOOD: API_KEY = os.environ["API_KEY"]', why: 'Code gets shared; secrets must not travel with it. (This site follows that rule too!)' },
+    { kind: 'predict', q: 'The safe order for shipping new code is...', answers: ['Test it, then deploy, then watch the logs', 'Deploy first, test if users complain', 'Delete the tests to go faster'], correct: 0,
+      code: 'tests -> commit -> push -> deploy -> logs', why: 'Every pro pipeline runs the tests BEFORE the code reaches real users.' },
+    { kind: 'predict', q: 'A form asks for age and someone types "banana". Your server should...', answers: ['Reject it politely with a 400', 'Crash — not your problem', 'Store the banana'], correct: 0,
+      code: 'POST /signup { "age": "banana" }', why: 'Validate everything: right type, sensible size. 400 Bad Request is the polite no.' }
+  ];
+
+  /* ---- hero art (self-drawn, copyright-free) ---- */
+  var HEROES = {
+    robot: SVG.robot,
+    scroll: '<svg viewBox="0 0 64 64"><rect x="14" y="8" width="36" height="48" rx="5" fill="#fff7e2"/><rect x="14" y="8" width="36" height="10" rx="5" fill="#ffd24a"/><line x1="21" y1="28" x2="43" y2="28" stroke="#b9a15c" stroke-width="3" stroke-linecap="round"/><line x1="21" y1="36" x2="43" y2="36" stroke="#b9a15c" stroke-width="3" stroke-linecap="round"/><line x1="21" y1="44" x2="35" y2="44" stroke="#b9a15c" stroke-width="3" stroke-linecap="round"/></svg>',
+    wrench: '<svg viewBox="0 0 64 64"><path d="M44 10a10 10 0 0 0-13 13L12 42a6 6 0 0 0 9 9l19-19a10 10 0 0 0 13-13l-7 7-8-2-2-8z" fill="#cfd8f2"/><circle cx="17" cy="47" r="3" fill="#8a97c9"/></svg>',
+    asteroid: '<svg viewBox="0 0 64 64"><circle cx="30" cy="32" r="16" fill="#8a97c9"/><circle cx="24" cy="28" r="4" fill="#5d6ca3"/><circle cx="36" cy="38" r="3" fill="#5d6ca3"/><path d="M48 12l4 8M54 26l6 2M50 44l6 6" stroke="#ffd24a" stroke-width="3" stroke-linecap="round"/></svg>',
+    browser: '<svg viewBox="0 0 64 64"><rect x="8" y="12" width="48" height="40" rx="6" fill="#fff"/><rect x="8" y="12" width="48" height="12" rx="6" fill="#4c6fff"/><circle cx="16" cy="18" r="2.5" fill="#ff5fa2"/><circle cx="24" cy="18" r="2.5" fill="#ffd24a"/><circle cx="32" cy="18" r="2.5" fill="#34d399"/><rect x="14" y="30" width="22" height="5" rx="2.5" fill="#cfd8f2"/><rect x="14" y="39" width="34" height="5" rx="2.5" fill="#e7ecfb"/></svg>',
+    branches: '<svg viewBox="0 0 64 64"><circle cx="16" cy="14" r="6" fill="#4c6fff"/><circle cx="16" cy="50" r="6" fill="#4c6fff"/><circle cx="48" cy="32" r="6" fill="#ff8a3c"/><path d="M16 20v24M16 26c0 8 32-2 32 0" fill="none" stroke="#9aa9d6" stroke-width="4" stroke-linecap="round"/></svg>',
+    vault: '<svg viewBox="0 0 64 64"><rect x="10" y="10" width="44" height="44" rx="8" fill="#6366f1"/><circle cx="32" cy="32" r="13" fill="#e7ecfb"/><circle cx="32" cy="32" r="5" fill="#6366f1"/><path d="M32 19v6M32 39v6M19 32h6M39 32h6" stroke="#c7d2fe" stroke-width="3" stroke-linecap="round"/></svg>',
+    satellite: '<svg viewBox="0 0 64 64"><rect x="26" y="24" width="12" height="16" rx="3" fill="#cfd8f2"/><rect x="6" y="26" width="16" height="12" rx="2" fill="#4c6fff"/><rect x="42" y="26" width="16" height="12" rx="2" fill="#4c6fff"/><line x1="32" y1="24" x2="32" y2="14" stroke="#8a97c9" stroke-width="3"/><circle cx="32" cy="11" r="4" fill="#ff5fa2"/><path d="M20 50c8 6 16 6 24 0" fill="none" stroke="#ffd24a" stroke-width="3" stroke-linecap="round"/></svg>',
+    planets: '<svg viewBox="0 0 64 64"><circle cx="22" cy="26" r="12" fill="#9a6bff"/><ellipse cx="22" cy="27" rx="19" ry="6" fill="none" stroke="#ffd24a" stroke-width="3" transform="rotate(-18 22 27)"/><circle cx="46" cy="44" r="8" fill="#34d399"/><circle cx="49" cy="15" r="5" fill="#ff5fa2"/></svg>'
+  };
+
   /* =================================================================
      GAME REGISTRY
      ================================================================= */
   var GAMES = {
     s1: {
-      key: 's1', title: 'Robo Runner', tag: 'Plan routes, collect fuel stars, master REPEAT blocks.',
-      story: [
-        'CRASH! Robo\'s cargo ship smashed into planet Blockos, scattering glowing fuel stars across the rocky fields.',
-        'Robo cannot think for itself — it only follows YOUR program: a queue of commands, run in order, exactly as written.',
-        'Plan well, young programmer. Every star collected brings Robo closer to flying home.'
-      ],
-      finale: 'Robo\'s ship is refuelled and airborne! You learned the deepest secret of coding: a program is just a plan, executed exactly.',
+      key: 's1', title: 'Robo Runner', tag: 'Plan routes, master REPEAT blocks, then face the IF/ELSE gates.',
+      hero: HEROES.robot,
+      finale: 'Robo\'s ship is refuelled and airborne! Sequences, loops, IF/ELSE — you know the moves behind every game.',
       chapters: [
         { name: 'Crash Site', blurb: 'Learn to queue commands and reach the flag.',
           run: gridQuest([
@@ -1823,18 +2096,16 @@
             { w: 6, h: 5, bot: [0, 4], flag: [5, 0], stars: [], rocks: [], par: 4, limit: 6 },
             { w: 6, h: 5, bot: [0, 4], flag: [5, 4], stars: [[2, 0], [3, 0]], rocks: [], par: 6, limit: 7 },
             { w: 5, h: 5, bot: [0, 4], flag: [4, 0], stars: [], rocks: [[1, 4], [2, 3], [3, 2], [4, 1]], par: 8, limit: 8 }
-          ], true) }
+          ], true) },
+        { name: 'Rule Gates', blurb: 'IF this THEN that — real Scratch logic puzzles.', run: quizQuest(SCRATCH_LOGIC, 3) }
       ]
     },
     s2: {
-      key: 's2', title: 'Python Quest', tag: 'Read spells, complete them, and weave whole scrolls of code.',
-      story: [
-        'The Great Dragon of Syntax sneezed on the Academy\'s spellbook, scrambling every Python spell inside.',
-        'Only a true code reader can restore it: predict what spells do, fill in their missing runes, and weave torn scrolls back into order.',
-        'Pass the Dragon\'s Gate at the end, and the Academy will name you a Spellwright of Pythonia.'
-      ],
-      finale: 'The spellbook is whole again! You can read, complete and assemble Python — the dragon bows to you.',
+      key: 's2', title: 'Python Quest', tag: 'Translate Scratch blocks, predict code, fix it, weave it together.',
+      hero: HEROES.scroll,
+      finale: 'You can read, complete and assemble Python — and you saw it is just Scratch in typed clothes.',
       chapters: [
+        { name: 'Block Translator', blurb: 'SIDE QUEST: every Scratch block has a Python twin.', run: quizQuest(BRIDGE, 3) },
         { name: 'Prophecy Hall', blurb: 'Predict what each spell prints.', run: quizQuest(PREDICT, 3) },
         { name: 'Broken Spellbook', blurb: 'Choose the missing rune in each spell.', run: quizQuest(BLANKS, 3) },
         { name: 'Scroll Weaver', blurb: 'Tap the torn lines back into working order.', run: quizQuest(ORDERS, 3) },
@@ -1842,96 +2113,76 @@
       ]
     },
     s3: {
-      key: 's3', title: 'Debug Station', tag: 'Find the broken line, choose the right repair, save the station.',
-      story: [
-        'ALARM! Space station Coreon is failing — the gravity flickers, the snack machine prints errors, and the reactor hums off-key.',
-        'Someone pushed buggy code to every system. You are the only debugger on board.',
-        'Read each program like a detective: find the ONE broken line, then choose the exact repair. The crew is counting on you.'
-      ],
-      finale: 'All systems green! You debugged an entire space station — reading errors calmly is a superpower most adults never learn.',
+      key: 's3', title: 'Debug Station', tag: 'Find broken lines, read crash reports, save the station.',
+      hero: HEROES.wrench,
+      finale: 'All systems green! Reading errors calmly is a superpower most adults never learn.',
       chapters: [
         { name: 'Life Support', blurb: 'Classic bugs: typos, = vs ==, indentation.', run: debugQuest(DEBUG_C1, 3) },
         { name: 'Navigation', blurb: 'Logic bugs: ranges, loops that never end.', run: debugQuest(DEBUG_C2, 3) },
+        { name: 'Crash Reports', blurb: 'Real error messages — name the cause.', run: quizQuest(CRASHES, 3) },
         { name: 'Reactor Core', blurb: 'BOSS: subtle bugs, only 2 lives.', run: debugQuest(DEBUG_C3, 2) }
       ]
     },
     s4: {
-      key: 's4', title: 'Algorithm Galaxy', tag: 'Sort asteroid belts, hunt pirates with binary search, load cargo.',
-      story: [
-        'The Algoria system is in chaos: asteroid belts are jumbled, pirate ships hide among a hundred coordinates, and the cargo bays are stacked all wrong.',
-        'Brute force will not save you here. You need ALGORITHMS — clever step-by-step strategies that beat problems fast.',
-        'Sort with the fewest swaps. Scan the middle to halve the search. Know your stacks from your queues. That is how engineers think.'
-      ],
-      finale: 'The system is in perfect order! You did not just solve puzzles — you used the same algorithms that run inside every search engine and game.',
+      key: 's4', title: 'Algorithm Galaxy', tag: 'Sort belts, hunt with binary search, read binary, judge speed.',
+      hero: HEROES.asteroid,
+      finale: 'You used the same algorithms that run inside every search engine and game — and you can even read binary.',
       chapters: [
         { name: 'Asteroid Belt', blurb: 'Sort with as few swaps as the maths allows.', run: sortChapter([[5, 2, 7, 1], [3, 7, 1, 5, 2], [9, 2, 8, 4, 6, 1], [6, 3, 8, 1, 9, 2, 7]]) },
         { name: 'Echo Scanner', blurb: 'Find hidden pirates — always scan the middle!', run: searchChapter([{ max: 31, budget: 6 }, { max: 63, budget: 7 }, { max: 100, budget: 8 }]) },
-        { name: 'Cargo Bay', blurb: 'Stacks vs queues: predict what comes out.', run: quizQuest(CARGO, 3) }
+        { name: 'Cargo Bay', blurb: 'Stacks vs queues: predict what comes out.', run: quizQuest(CARGO, 3) },
+        { name: 'Binary Lights', blurb: 'Read numbers the way computers store them.', run: binaryChapter(BINARY) },
+        { name: 'Speed Court', blurb: 'Judge which code is fast and which is slow.', run: quizQuest(BIGO, 3) }
       ]
     },
     s5: {
-      key: 's5', title: 'Web Builder', tag: 'Build the Space Café\'s website piece by piece — and watch it come alive.',
-      story: [
-        'The Space Café — best nebula soup in the quadrant — has NO website. Zero customers can find it.',
-        'The owner slides you a napkin sketch: a title, a photo, a menu, an order button. "Build it," she says, "and make it beautiful."',
-        'HTML for the bones. CSS for the style. JavaScript for the magic. The fake browser on your screen will show every piece you place.'
-      ],
-      finale: 'The Space Café is ONLINE and orders are pouring in! You built a real page with the exact three languages every website on Earth uses.',
+      key: 's5', title: 'Web Builder', tag: 'Build the Space Café\'s site piece by piece — and aim CSS like a sniper.',
+      hero: HEROES.browser,
+      finale: 'The Space Café is ONLINE! You used the exact three languages every website on Earth is made of.',
       chapters: [
         { name: 'Raise the Bones', blurb: 'HTML: place the right tag for every need.', run: webQuest(WEB_HTML) },
         { name: 'Paint the Hull', blurb: 'CSS: style the page — see it change live.', run: webQuest(WEB_CSS) },
+        { name: 'Selector Sniper', blurb: 'Aim tag, .class and #id selectors at the right targets.', run: selectorChapter(SELECTORS) },
         { name: 'Flip the Switch', blurb: 'JavaScript: wire up clicks, greetings and night mode.', run: webQuest(webJsSteps()) }
       ]
     },
     s6: {
-      key: 's6', title: 'Git Time Machine', tag: 'Command the timeline: commits, branches and merge conflicts.',
-      story: [
-        'Welcome, Keeper of the Code Timeline. Every project in the galaxy lives and dies by its history — and Git is the machine that controls it.',
-        'Learn the commands that snapshot time. Split the timeline into branches. And when two timelines collide in a CONFLICT... you will be the one to resolve it.',
-        'Real engineers merge timelines every single day. Today, you become one of them.'
-      ],
-      finale: 'Timeline mastered! Commits, branches, merges, conflicts — you now speak the language every software team on the planet uses.',
+      key: 's6', title: 'Git Time Machine', tag: 'Commits, branches, conflicts — plus pip and terminal drills.',
+      hero: HEROES.branches,
+      finale: 'Commits, branches, merges, pip, terminal — you now work like a real software team member.',
       chapters: [
         { name: 'First Snapshots', blurb: 'The core commands: add, commit, push, pull.', run: termChapter(GIT_C1, 3) },
         { name: 'Branch Riddles', blurb: 'Parallel timelines and how they merge.', run: quizQuest(GIT_C2, 3) },
+        { name: 'Toolbelt Drills', blurb: 'pip, requirements.txt, folders and running code.', run: termChapter(TOOLBELT, 3) },
         { name: 'Conflict Boss', blurb: 'Resolve real merge conflicts by hand.', run: conflictChapter(GIT_C3) }
       ]
     },
     s7: {
-      key: 's7', title: 'Data Vault', tag: 'Read tables, follow secret keys and filter data like a real app.',
-      story: [
-        'The Galactic Library holds the records of every planet, pilot and ship — all organised in TABLES: one row per thing, one column per fact.',
-        'The head librarian just retired, and someone must learn to read the vault: look up records, follow the secret keys that connect tables, and filter out exactly the right rows.',
-        'Grown-up engineers talk to vaults like this in a language called SQL — but the IDEAS are what matter, and today they become yours. Welcome, new librarian.'
-      ],
-      finale: 'The vault is yours! Rows, columns, keys and filters — you now think in data like an engineer. (And when you meet SQL one day, it will just be these ideas in words.)',
+      key: 's7', title: 'Data Vault', tag: 'Read tables, follow secret keys, filter rows, judge designs.',
+      hero: HEROES.vault,
+      finale: 'Rows, columns, keys, filters and design — you now think in data like an engineer.',
       chapters: [
         { name: 'The Reading Room', blurb: 'Rows, columns, records — learn to read a table.', run: tableChapter(TBL_ROUNDS) },
         { name: 'Secret Keys', blurb: 'Follow the ids that connect tables together.', run: keysChapter() },
-        { name: 'Filter Patrol', blurb: 'Select exactly the right rows, like a real search.', run: filterChapter(FILTERS) }
+        { name: 'Filter Patrol', blurb: 'Select exactly the right rows, like a real search.', run: filterChapter(FILTERS) },
+        { name: 'Vault Architect', blurb: 'Judge good and bad data designs.', run: quizQuest(DESIGN, 3) }
       ]
     },
     s8: {
-      key: 's8', title: 'API Command Center', tag: 'Send real requests, decode status codes, ship the Galaxy App.',
-      story: [
-        'This is it, cadet — the final station. Every app you have ever used works the same secret way: it sends REQUESTS to servers and reads their RESPONSES.',
-        'Today you sit at the console. Build real requests: GET to read, POST to create, DELETE to remove. Watch the mock server answer with live JSON and status codes.',
-        'Decode the signals. Trace the data flows. Then run the launch pipeline and ship the Galaxy App to the cloud. Senior engineers do this every day — your turn.'
-      ],
-      finale: 'THE GALAXY APP IS LIVE! Requests, responses, status codes, databases, deployments — you just performed the daily magic of a senior software engineer.',
+      key: 's8', title: 'API Command Center', tag: 'Send real requests, decode signals, pass security, ship it.',
+      hero: HEROES.satellite,
+      finale: 'THE GALAXY APP IS LIVE! Requests, status codes, security, deployment — the daily magic of a senior engineer.',
       chapters: [
         { name: 'Request Academy', blurb: 'Build GET, POST and DELETE requests — a live server answers.', run: requestChapter(API_MISSIONS) },
         { name: 'Code Red Signals', blurb: 'Decode 200, 201, 400, 403, 404 and 500.', run: statusChapter(API_STATUS) },
         { name: 'Signal Chains', blurb: 'Trace requests app to server to database and back.', run: chainChapter(API_CHAINS.slice(0, 3)) },
+        { name: 'Shield Wall', blurb: 'Passwords, HTTPS, sneaky input — think like security.', run: quizQuest(SECURITY, 3) },
         { name: 'Launch Day', blurb: 'BOSS: run the deployment pipeline and go LIVE.', run: chainChapter([API_CHAINS[3]]) }
       ]
     },
     j1: {
       key: 'j1', title: 'Robo Runner Jr', tag: 'Walk little Robo to the star, one arrow at a time.',
-      story: [
-        'Little Robo woke up far from home and wants to reach the twinkling star.',
-        'Tap the arrows to teach Robo the way — then press Go and watch it walk your plan!'
-      ],
+      hero: HEROES.robot,
       finale: 'Robo is home! You gave a robot its very first instructions — that is real programming!',
       chapters: [
         { name: 'First Steps', blurb: 'Short walks, no rocks.',
@@ -1950,10 +2201,7 @@
     },
     j2: {
       key: 'j2', title: 'Planet Echo', tag: 'Watch the planets light up, then tap the pattern back.',
-      story: [
-        'The four singing planets of the Kitten Nebula play a light-song — and they want YOU to sing it back.',
-        'Watch carefully. Each round the song grows by one light. How long a song can you remember?'
-      ],
+      hero: HEROES.planets,
       finale: 'The planets sing your name across the nebula! Remembering patterns is exactly how coders read programs.',
       chapters: [
         { name: 'The Light Song', blurb: 'Reach a pattern of 4 to pass. 8 is legendary!', run: echoQuest(8, 6, 4) }
@@ -1970,9 +2218,7 @@
     elTitle.textContent = g.title;
     elTag.textContent = g.tag;
     card.style.setProperty('--planet-color', info.color || '#4c6fff');
-    var seen = starsFor(g.key, g.chapters.length).some(function (s) { return s > 0; });
-    if (seen) showChapters(g, info);
-    else showStory(g, info);
+    showChapters(g, info);
   }
 
   document.addEventListener('click', function (ev) {

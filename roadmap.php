@@ -102,6 +102,17 @@ function roadmap_main(): array {
             'name'=>'Stage 2 — First Real Language (Python)',
             'blurb'=>'Type actual code in Python, the friendliest language.',
             'levels'=>[
+                ['key'=>'s2b1','title'=>'Side Quest: Blocks to Text','topic'=>'Scratch → Python — same ideas, new clothes','tool'=>'Python',
+                 'learn'=>['Every Scratch block has a Python twin','say = print, ask = input, repeat = for','You already know the IDEAS — only the spelling is new'],
+                 'mission'=>'Translate five blocks from your favourite Scratch project into Python lines.',
+                 'steps'=>[
+                    'Open your best Scratch project and pick five blocks (say, set score, repeat, if, ask).',
+                    'Write next to each block its Python twin: print(), score = 0, for i in range(...), if ...:, input().',
+                    'Play the Block Translator chapter in this world\'s arcade game.',
+                    'Notice: the logic is identical — Python is just typed instead of dragged.',
+                    'When your five translations make sense to you, mark complete.'],
+                 'platforms'=>['Scratch','Python'],
+                 'resources'=>[['name'=>'Scratch to Python — from blocks to text','url'=>'https://projects.raspberrypi.org/en/pathways/scratch-to-python'],['name'=>'W3Schools — Python syntax','url'=>'https://www.w3schools.com/python/python_syntax.asp']]],
                 ['key'=>'s2l1','title'=>'Hello, Universe','topic'=>'print(), input(), your first program','tool'=>'Python',
                  'learn'=>['Write and run your first Python program','Show text with print()','Ask questions with input()'],
                  'mission'=>'Write a program that asks the user name and greets them.',

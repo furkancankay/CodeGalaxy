@@ -1412,3 +1412,53 @@ a.btn-blast{text-decoration:none}
 .sql-table tr.is-right-row td{background:#e6fbef}
 .sql-table tr.is-wrong-row td{background:#fff0f3}
 .sql-table tr.is-pick td{background:#e7ecff; box-shadow:inset 3px 0 0 var(--blue)}
+
+/* ============================================================
+ *  ARCADE v3 — visual chapter hero, Scratch blocks, bulbs, sniper
+ * ============================================================ */
+.ch-hero{
+  position:relative; height:92px; border-radius:18px; margin-bottom:12px; overflow:hidden;
+  display:grid; place-items:center; box-shadow:0 10px 24px rgba(94,84,255,.25);
+}
+.ch-hero-art{width:64px; height:64px; display:block; filter:drop-shadow(0 6px 10px rgba(20,24,60,.3)); animation:float 3s ease-in-out infinite}
+.ch-hero-art svg{width:100%; height:100%}
+
+/* Scratch-style blocks (self-drawn, no trademarks) */
+.scb-stack{display:flex; flex-direction:column; align-items:flex-start; gap:3px; margin:0 0 14px; text-align:left}
+.scb{
+  color:#fff; font-weight:700; font-size:13px; font-family:var(--font);
+  padding:8px 14px; border-radius:8px; box-shadow:0 2px 0 rgba(0,0,0,.18);
+  white-space:nowrap;
+}
+.scb-hat{border-radius:16px 16px 8px 8px}
+.scb-event{background:#f5c400; color:#5b4a00}
+.scb-control{background:#ffab19}
+.scb-motion{background:#4c97ff}
+.scb-looks{background:#9966ff}
+.scb-sensing{background:#5cb1d6}
+.scb-variables{background:#ff8c1a}
+.scb-sound{background:#cf63cf}
+@media(max-width:560px){ .scb{font-size:11.5px; padding:7px 10px; white-space:normal} }
+
+/* binary bulbs */
+.bulb-row{display:flex; gap:14px; justify-content:center; margin:6px 0 16px}
+.bulb-cell{display:flex; flex-direction:column; align-items:center; gap:4px}
+.bulb-svg{width:44px; height:57px}
+.bulb-cell.on .bulb-svg{filter:drop-shadow(0 0 10px rgba(255,210,74,.8))}
+.bulb-cell span{font-family:var(--font-display); font-weight:700; font-size:15px; color:var(--muted)}
+.bulb-cell.on span{color:var(--gold)}
+
+/* selector sniper */
+.sel-el{
+  display:block; width:100%; text-align:left; margin:7px 0; padding:10px 12px;
+  border:2px dashed #dfe5f6; border-radius:10px; background:#fbfcff; cursor:pointer;
+  font-family:inherit; font-weight:700; font-size:13.5px; color:var(--ink); transition:.15s;
+}
+.sel-el:hover{border-color:var(--blue); background:#f0f4ff}
+.sel-el .sel-tag{
+  display:inline-block; margin-right:10px; padding:2px 8px; border-radius:6px;
+  background:#20263f; color:#8fe3ff; font-family:'Menlo','Consolas',monospace; font-size:10.5px; font-weight:700;
+}
+.sel-el.is-hit{border:3px solid var(--gold); background:#fff7e2; box-shadow:0 0 0 3px rgba(255,176,32,.25)}
+.sel-el.is-miss{border-color:#f5536b; animation:ashake .4s}
+.sel-code{margin-bottom:12px}
