@@ -85,6 +85,7 @@ foreach (roadmap_for($track) as $si => $stage) {
             'key' => $lvl['key'], 'index' => $gi, 'title' => $lvl['title'],
             'color' => $stage['color'], 'start' => ($li === 0),
             'stageName' => $stage['name'], 'stageNum' => $si + 1,
+            'stageKey' => $stage['key'],
         ];
         $gi++;
     }
@@ -134,7 +135,7 @@ $banners = [];
 foreach ($nodes as $i => $nd) {
     if (!$nd['start']) continue;
     $by = ($i === 0) ? ($nd['y'] - 74) : (($nodes[$i - 1]['y'] + $nd['y']) / 2);
-    $banners[] = ['y' => $by, 'name' => $nd['stageName'], 'color' => $nd['color'], 'num' => $nd['stageNum']];
+    $banners[] = ['y' => $by, 'name' => $nd['stageName'], 'color' => $nd['color'], 'num' => $nd['stageNum'], 'key' => $nd['stageKey']];
 }
 
 // The road is the TRUE sine curve sampled densely (not a curve through the
@@ -212,6 +213,11 @@ for ($s = 0; $s < $decoCount; $s++) {
 </head>
 <body class="app-page">
 <canvas id="stars"></canvas>
+<div class="l-bg" aria-hidden="true">
+    <span class="l-blob l-blob-1"></span>
+    <span class="l-blob l-blob-2"></span>
+    <span class="l-blob l-blob-3"></span>
+</div>
 
 <header class="topbar glass">
     <div class="topbar-left">
@@ -261,6 +267,13 @@ for ($s = 0; $s < $decoCount; $s++) {
             <div class="map-banner" style="top:<?= round($b['y'], 1) ?>px; --c:<?= e($b['color']) ?>">
                 <span class="banner-num"><?= (int)$b['num'] ?></span>
                 <span class="banner-name"><?= e($b['name']) ?></span>
+                <button type="button" class="banner-play"
+                        data-arcade="<?= e($b['key']) ?>" data-num="<?= (int)$b['num'] ?>"
+                        data-name="<?= e($b['name']) ?>" data-color="<?= e($b['color']) ?>"
+                        aria-label="Play this world's arcade game">
+                    <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="8" width="19" height="9.5" rx="4.75" fill="currentColor"/><rect x="6" y="11.2" width="4.6" height="1.6" rx=".8" fill="#fff"/><rect x="7.5" y="9.7" width="1.6" height="4.6" rx=".8" fill="#fff"/><circle cx="15.4" cy="11.4" r="1.15" fill="#fff"/><circle cx="18" cy="13.6" r="1.15" fill="#fff"/></svg>
+                    Play
+                </button>
             </div>
         <?php endforeach; ?>
 
@@ -330,6 +343,21 @@ for ($s = 0; $s < $decoCount; $s++) {
     </div>
 </div>
 
+<!-- Arcade: a mini-game for every world, opened from the stage banners -->
+<div id="arcadeModal" class="modal" hidden>
+    <div class="modal-backdrop" data-aclose></div>
+    <div class="modal-card glass arcade-card">
+        <button class="modal-x" data-aclose aria-label="Close">&times;</button>
+        <div class="arcade-head">
+            <span class="arcade-world" id="aWorld"></span>
+            <h2 class="arcade-title" id="aTitle"></h2>
+            <p class="arcade-tagline" id="aTag"></p>
+        </div>
+        <div class="arcade-hud" id="aHud"></div>
+        <div class="arcade-stage" id="aStage"></div>
+    </div>
+</div>
+
 <!-- Celebration overlay -->
 <div id="celebrate" class="celebrate" hidden>
     <div class="celebrate-card glass">
@@ -351,5 +379,6 @@ window.CG = {
 <?= site_footer() ?>
 <script src="assets/js/stars.js"></script>
 <script src="assets/js/app.js"></script>
+<script src="assets/js/arcade.js"></script>
 </body>
 </html>
